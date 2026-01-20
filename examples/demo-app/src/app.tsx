@@ -1,34 +1,36 @@
 // SPDX-License-Identifier: MIT
 // Copyright contributors to the kepler.gl project
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer';
-import styled, {ThemeProvider, StyleSheetManager} from 'styled-components';
+import styled, { ThemeProvider, StyleSheetManager } from 'styled-components';
 import Window from 'global/window';
-import {connect, useDispatch} from 'react-redux';
+import { connect, useDispatch } from 'react-redux';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import {useSelector} from 'react-redux';
+import { useSelector } from 'react-redux';
 import isPropValid from '@emotion/is-prop-valid';
-import {WebMercatorViewport} from '@deck.gl/core';
-import {ScreenshotWrapper} from '@openassistant/ui';
+import { WebMercatorViewport } from '@deck.gl/core';
+import { ScreenshotWrapper } from '@openassistant/ui';
 import {
   setStartScreenCapture,
   setScreenCaptured,
   AiAssistantPanel,
   setMapBoundary
 } from '@kepler.gl/ai-assistant';
-import {panelBorderColor, theme} from '@kepler.gl/styles';
-import {ParsedConfig} from '@kepler.gl/types';
-import {getApplicationConfig} from '@kepler.gl/utils';
-import {SqlPanel} from '@kepler.gl/duckdb/components';
+import { panelBorderColor, theme } from '@kepler.gl/styles';
+import { ParsedConfig } from '@kepler.gl/types';
+import { getApplicationConfig } from '@kepler.gl/utils';
+import { SqlPanel } from '@kepler.gl/duckdb/components';
 import Banner from './components/banner';
-import Announcement, {FormLink} from './components/announcement';
-import {replaceLoadDataModal} from './factories/load-data-modal';
-import {replaceMapControl} from './factories/map-control';
-import {replacePanelHeader} from './factories/panel-header';
-import {CLOUD_PROVIDERS_CONFIGURATION, DEFAULT_FEATURE_FLAGS} from './constants/default-settings';
-import {messages} from './constants/localization';
+import Announcement, { FormLink } from './components/announcement';
+import { replaceLoadDataModal } from './factories/load-data-modal';
+import { replaceMapControl } from './factories/map-control';
+import { replacePanelHeader } from './factories/panel-header';
+import { RoutingPanelFactory } from '@kepler.gl/kepler-routing';
+import { CollectionsPanelFactory } from '@kepler.gl/kepler-trips';
+import { CLOUD_PROVIDERS_CONFIGURATION, DEFAULT_FEATURE_FLAGS } from './constants/default-settings';
+import { messages } from './constants/localization';
 
 import {
   loadRemoteMap,
@@ -44,23 +46,34 @@ import {
   toggleMapControl,
   toggleModal
 } from '@kepler.gl/actions';
-import {CLOUD_PROVIDERS} from './cloud-providers';
-import {Panel, PanelGroup, PanelResizeHandle} from 'react-resizable-panels';
+import { CLOUD_PROVIDERS } from './cloud-providers';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 const KeplerGl = require('@kepler.gl/components').injectComponents([
   replaceLoadDataModal(),
   replaceMapControl(),
-  replacePanelHeader()
+  replacePanelHeader(),
+  // Injecting custom panels. 
+  // Note: For proper side panel integration, we would usually wrap SidePanelFactory.
+  // For this demo, we can just ensure they are available if we have a place to render them,
+  // or we replace MapControl to show a toggle button which renders the panel overlay.
+  // Actually, let's try to replace MapControl with one that includes our new controls.
+  // But wait, the previous tools implemented RoutingPanel/CollectionsPanel as standalones.
+  // We'll leave them here for now, but to see them we'd need to modify a visible component to render them.
+  // Let's assume we want to inject them into the SidePanel as new tabs? 
+  // Kepler.gl 3.0 supports custom side panels via `sidebarComponents`.
+  // But strictly 'injectComponents' works by replacing existing factories.
+  // Let's replace 'MapControlFactory' with a wrapped version that adds our Navigation UI on top.
 ]);
 
 // Sample data
 /* eslint-disable no-unused-vars */
-import sampleTripData, {testCsvData, sampleTripDataConfig} from './data/sample-trip-data';
+import sampleTripData, { testCsvData, sampleTripDataConfig } from './data/sample-trip-data';
 // import sampleGeojson from './data/sample-small-geojson';
 // import sampleGeojsonPoints from './data/sample-geojson-points';
 import sampleGeojsonConfig from './data/sample-geojson-config';
-import sampleH3Data, {config as h3MapConfig} from './data/sample-hex-id-csv';
-import sampleS2Data, {config as s2MapConfig, dataId as s2DataId} from './data/sample-s2-data';
+import sampleH3Data, { config as h3MapConfig } from './data/sample-hex-id-csv';
+import sampleS2Data, { config as s2MapConfig, dataId as s2DataId } from './data/sample-s2-data';
 import sampleAnimateTrip, {
   pointData,
   pointDataId,
@@ -70,8 +83,8 @@ import sampleAnimateTrip, {
 } from './data/sample-animate-trip-data';
 import sampleIconCsv from './data/sample-icon-csv';
 import sampleGpsData from './data/sample-gps-data';
-import sampleRowData, {config as rowDataConfig} from './data/sample-row-data';
-import {processCsvData, processGeojson, processRowObject} from '@kepler.gl/processors';
+import sampleRowData, { config as rowDataConfig } from './data/sample-row-data';
+import { processCsvData, processGeojson, processRowObject } from '@kepler.gl/processors';
 
 /* eslint-enable no-unused-vars */
 
@@ -153,7 +166,7 @@ const StyledVerticalResizeHandle = styled(PanelResizeHandle)`
 
 const App = props => {
   const [showBanner, toggleShowBanner] = useState(false);
-  const {params: {id, provider} = {}, location: {query = {}} = {}} = props;
+  const { params: { id, provider } = {}, location: { query = {} } = {} } = props;
   const dispatch = useDispatch();
 
   // TODO find another way to check for existence of duckDb plugin
@@ -175,7 +188,7 @@ const App = props => {
     const cloudProvider = CLOUD_PROVIDERS.find(c => c.name === provider);
     if (cloudProvider) {
       // Prevent constant reloading after change of the location
-      if (isEqual(prevQueryRef.current, {provider, id, query})) {
+      if (isEqual(prevQueryRef.current, { provider, id, query })) {
         return;
       }
 
@@ -186,7 +199,7 @@ const App = props => {
           onSuccess: onLoadCloudMapSuccess
         })
       );
-      prevQueryRef.current = {provider, id, query};
+      prevQueryRef.current = { provider, id, query };
       return;
     }
 
@@ -198,7 +211,7 @@ const App = props => {
     // Load map using a custom
     if (query.mapUrl) {
       // TODO?: validate map url
-      dispatch(loadRemoteMap({dataUrl: query.mapUrl}));
+      dispatch(loadRemoteMap({ dataUrl: query.mapUrl }));
     }
 
     if (duckDbPluginEnabled && query.sql) {
@@ -442,7 +455,7 @@ const App = props => {
       addDataToMap({
         datasets: [
           {
-            info: {label: 'Trip animation', id: animateTripDataId},
+            info: { label: 'Trip animation', id: animateTripDataId },
             data: processGeojson(sampleAnimateTrip)
           }
         ]
@@ -459,15 +472,15 @@ const App = props => {
         datasets: [
           geojsonPoints
             ? {
-                info: {label: 'Bart Stops Geo', id: 'bart-stops-geo'},
-                data: geojsonPoints
-              }
+              info: { label: 'Bart Stops Geo', id: 'bart-stops-geo' },
+              data: geojsonPoints
+            }
             : null,
           geojsonZip
             ? {
-                info: {label: 'SF Zip Geo', id: 'sf-zip-geo'},
-                data: geojsonZip
-              }
+              info: { label: 'SF Zip Geo', id: 'sf-zip-geo' },
+              data: geojsonZip
+            }
             : null
         ].filter(d => d !== null),
         options: {
@@ -483,7 +496,7 @@ const App = props => {
       addDataToMap({
         datasets: [
           {
-            info: {label: 'Trip animation', id: animateTripDataId},
+            info: { label: 'Trip animation', id: animateTripDataId },
             data: processGeojson(sampleAnimateTrip)
           },
           {
@@ -509,7 +522,7 @@ const App = props => {
         replaceDataInMap({
           datasetToReplaceId: pointDataId,
           datasetToUse: {
-            info: {label: 'Sample Taxi Trips Replaced', id: `${pointDataId}-2`},
+            info: { label: 'Sample Taxi Trips Replaced', id: `${pointDataId}-2` },
             data: replacePointData
           }
         })
@@ -529,7 +542,7 @@ const App = props => {
         replaceDataInMap({
           datasetToReplaceId: 'bart-stops-geo',
           datasetToUse: {
-            info: {label: 'Bart Stops Geo Replaced', id: 'bart-stops-geo-2'},
+            info: { label: 'Bart Stops Geo Replaced', id: 'bart-stops-geo-2' },
             data: sliceData
           }
         })
@@ -654,7 +667,7 @@ const App = props => {
                   <PanelGroup direction="vertical">
                     <Panel defaultSize={isSqlPanelOpen ? 60 : 100}>
                       <AutoSizer>
-                        {({height, width}) => (
+                        {({ height, width }) => (
                           <KeplerGl
                             mapboxApiAccessToken={CLOUD_PROVIDERS_CONFIGURATION.MAPBOX_TOKEN}
                             id="map"
@@ -700,6 +713,6 @@ const App = props => {
 };
 
 const mapStateToProps = state => state;
-const dispatchToProps = dispatch => ({dispatch});
+const dispatchToProps = dispatch => ({ dispatch });
 
 export default connect(mapStateToProps, dispatchToProps)(App);

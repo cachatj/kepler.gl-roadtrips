@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright contributors to the kepler.gl project
 
-import {combineReducers} from 'redux';
-import {handleActions} from 'redux-actions';
-import Task, {withTask} from 'react-palm/tasks';
+import { combineReducers } from 'redux';
+import { handleActions } from 'redux-actions';
+import Task, { withTask } from 'react-palm/tasks';
 
-import {aiAssistantReducer} from '@kepler.gl/ai-assistant';
-import {EXPORT_MAP_FORMATS} from '@kepler.gl/constants';
-import {processGeojson, processRowObject, processArrowTable} from '@kepler.gl/processors';
-import keplerGlReducer, {combinedUpdaters, uiStateUpdaters} from '@kepler.gl/reducers';
+import { aiAssistantReducer } from '@kepler.gl/ai-assistant';
+import { EXPORT_MAP_FORMATS } from '@kepler.gl/constants';
+import { processGeojson, processRowObject, processArrowTable } from '@kepler.gl/processors';
+import keplerGlReducer, { combinedUpdaters, uiStateUpdaters } from '@kepler.gl/reducers';
 import KeplerGlSchema from '@kepler.gl/schemas';
-import {KeplerTable} from '@kepler.gl/table';
-import {getApplicationConfig} from '@kepler.gl/utils';
+import { KeplerTable } from '@kepler.gl/table';
+import { getApplicationConfig } from '@kepler.gl/utils';
+import { routingReducer, locationReducer } from '@kepler.gl/kepler-routing';
+import { collectionsReducer } from '@kepler.gl/kepler-trips';
 
 // import {getApplicationConfig, initApplicationConfig} from '@kepler.gl/utils';
 // import keplerGlDuckdbPlugin, {KeplerGlDuckDbTable, DuckDBWasmAdapter} from '@kepler.gl/duckdb';
@@ -26,8 +28,8 @@ import {
   loadRemoteDatasetProcessedSuccessAction
 } from '../actions';
 
-import {CLOUD_PROVIDERS_CONFIGURATION} from '../constants/default-settings';
-import {generateHashId} from '../utils/strings';
+import { CLOUD_PROVIDERS_CONFIGURATION } from '../constants/default-settings';
+import { generateHashId } from '../utils/strings';
 
 // initialize kepler demo-app with DuckDB plugin
 /*
@@ -49,7 +51,7 @@ initApplicationConfig({
 });
 */
 
-const {DEFAULT_MAP_CONTROLS} = uiStateUpdaters;
+const { DEFAULT_MAP_CONTROLS } = uiStateUpdaters;
 
 // INITIAL_APP_STATE
 const initialAppState = {
@@ -83,7 +85,7 @@ export const appReducer = handleActions(
   initialAppState
 );
 
-const {DEFAULT_EXPORT_MAP} = uiStateUpdaters;
+const { DEFAULT_EXPORT_MAP } = uiStateUpdaters;
 
 // combine app reducer and keplerGl reducer
 // to mimic the reducer state of kepler.gl website
@@ -106,13 +108,13 @@ const demoReducer = combineReducers({
         // TODO find a better way not to add extra controls optionally - from plugin?
         ...((getApplicationConfig().plugins || []).some(p => p.name === 'duckdb')
           ? {
-              sqlPanel: {
-                active: false,
-                activeMapIndex: 0,
-                disableClose: false,
-                show: true
-              }
+            sqlPanel: {
+              active: false,
+              activeMapIndex: 0,
+              disableClose: false,
+              show: true
             }
+          }
           : {})
       }
     },
@@ -122,7 +124,10 @@ const demoReducer = combineReducers({
     }
   }),
   app: appReducer,
-  aiAssistant: aiAssistantReducer
+  aiAssistant: aiAssistantReducer,
+  routing: routingReducer,
+  location: locationReducer,
+  collections: collectionsReducer
 });
 
 async function loadRemoteResourceSuccessTask({
@@ -161,9 +166,9 @@ const LOAD_REMOTE_RESOURCE_SUCCESS_TASK = Task.fromPromise(
 export const loadRemoteResourceSuccess = (state, action) => {
   // TODO: replace generate with a different function
   const datasetId = action.options.id || generateHashId(6);
-  const {dataUrl} = action.options;
+  const { dataUrl } = action.options;
 
-  const {shape} = dataUrl ? action.response : {};
+  const { shape } = dataUrl ? action.response : {};
   let processorMethod = processRowObject;
   let unprocessedData = action.response;
   unprocessedData = shape === 'object-row-table' ? action.response.data : unprocessedData;
@@ -200,7 +205,7 @@ export const loadRemoteResourceSuccess = (state, action) => {
     remoteDatasetConfig: action.remoteDatasetConfig,
     unprocessedData
   }).bimap(
-    datasets => loadRemoteDatasetProcessedSuccessAction({...action, datasets}),
+    datasets => loadRemoteDatasetProcessedSuccessAction({ ...action, datasets }),
     () => {
       throw new Error('loadRemoteResource data processor failed');
     }
@@ -210,7 +215,7 @@ export const loadRemoteResourceSuccess = (state, action) => {
 };
 
 const loadRemoteDatasetProcessedSuccess = (state, action) => {
-  const {config, datasets, options} = action.payload;
+  const { config, datasets, options } = action.payload;
 
   const parsedConfig = config ? KeplerGlSchema.parseSavedConfig(config) : null;
 
@@ -252,7 +257,7 @@ const loadRemoteDatasetProcessedSuccess = (state, action) => {
 };
 
 export const loadRemoteResourceError = (state, action) => {
-  const {error, url} = action;
+  const { error, url } = action;
 
   const errorNote = {
     type: 'error',

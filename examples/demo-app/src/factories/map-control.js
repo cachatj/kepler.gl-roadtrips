@@ -10,10 +10,15 @@ import {
   EffectControlFactory,
   EffectManagerFactory
 } from '@kepler.gl/components';
-import {AiAssistantControlFactory} from '@kepler.gl/ai-assistant';
+import { AiAssistantControlFactory } from '@kepler.gl/ai-assistant';
 
-import {BannerMapPanel, SampleMapPanel} from '../components/map-control/map-control';
+import { BannerMapPanel, SampleMapPanel } from '../components/map-control/map-control';
 import SqlPanelControlFactory from '../components/map-control/sql-panel-control';
+import {
+  RoutingControlFactory,
+  CollectionsControlFactory,
+  GPXUploadControlFactory
+} from '../components/map-control/trip-controls';
 
 const StyledMapControlPanel = styled.div`
   position: relative;
@@ -60,6 +65,9 @@ CustomMapControlFactory.deps = [
   EffectManagerFactory,
   SqlPanelControlFactory,
   AiAssistantControlFactory,
+  RoutingControlFactory,
+  CollectionsControlFactory,
+  GPXUploadControlFactory,
   ...MapControlFactory.deps
 ];
 function CustomMapControlFactory(
@@ -67,6 +75,9 @@ function CustomMapControlFactory(
   EffectManager,
   SqlPanelControl,
   AiAssistantControl,
+  RoutingControl,
+  CollectionsControl,
+  GPXUploadControl,
   ...deps
 ) {
   const MapControl = MapControlFactory(...deps);
@@ -74,7 +85,10 @@ function CustomMapControlFactory(
     ...(MapControl.defaultActionComponents ?? []),
     EffectControl,
     SqlPanelControl,
-    AiAssistantControl
+    AiAssistantControl,
+    GPXUploadControl,
+    RoutingControl,
+    CollectionsControl
   ];
 
   const CustomMapControl = props => {
@@ -93,7 +107,7 @@ function CustomMapControlFactory(
     );
   };
 
-  return withState([], state => ({...state.demo.app}))(CustomMapControl);
+  return withState([], state => ({ ...state.demo.app }))(CustomMapControl);
 }
 
 export function replaceMapControl() {

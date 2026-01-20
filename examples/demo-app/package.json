@@ -21,6 +21,8 @@
     "@kepler.gl/components": "^3.2.0",
     "@kepler.gl/constants": "^3.2.0",
     "@kepler.gl/duckdb": "^3.2.0",
+    "@kepler.gl/kepler-routing": "portal:../../packages/kepler-routing",
+    "@kepler.gl/kepler-trips": "portal:../../packages/kepler-trips",
     "@kepler.gl/processors": "^3.2.0",
     "@kepler.gl/reducers": "^3.2.0",
     "@kepler.gl/schemas": "^3.2.0",
