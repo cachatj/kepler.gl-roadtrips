@@ -25,11 +25,45 @@
 <h1 align="center">
   kepler.gl | <a href="https://kepler.gl">Website</a> | <a href="https://kepler.gl/#/demo">Demo App</a> | <a href="https://docs.kepler.gl/">Docs</a>
 </h1>
-<h3></h3>
+<h3>
+  
+import GPX & Routing in kepler.gl
 
-[<img width="120" alt="Kepler.gl" src="https://d1a3f4spazzrp4.cloudfront.net/kepler.gl/website/icons/kepler.gl-logo.png">](http://kepler.gl)
+long term user of kepler.gl for data visualization of GPS movement trajectories. 
 
-[<img width="600" alt="Kepler.gl Demo" src="./screenshots/screenshot.png">](https://kepler.gl/demo)
+currently, kepler.gl does not include location services, GPX trip management, and spatial analysis features off the shelf. 
+
+it's possible to preprocess raw GPS data into CSV dataframe before importing, and loading as a point layer - but different source formats & tedious time-series filtering make it out of reach for most. 
+
+so I forked the repo, and just finished an initial proof of concept/demo of GPX import, trip management & routing btw two locations.
+
+ https://github.com/cachatj/kepler.gl-roadtrips
+
+download & run locally in browser 
+
+'''bash
+
+\# Clone the repository
+
+git clone https://github.com/cachatj/kepler.gl-roadtrips.git
+
+cd kepler.gl-roadtrips
+
+\# Install dependencies (requires Node 18.18.2+)
+
+yarn install
+
+\# Build the project
+
+yarn build
+
+\# Start the application
+
+yarn start
+
+'''
+
+sharing this initial attempt to see if anyone else finds it valuable or has a use case this improves. also looking for feedback. 
 
 [Kepler.gl][web] is a data-agnostic, high-performance web-based application for visual exploration of large-scale geolocation data sets. Built on top of [MapLibre GL](https://maplibre.org/) and [deck.gl](https://deck.gl/), kepler.gl can render millions of points representing thousands of trips and perform spatial aggregations on the fly.
 
