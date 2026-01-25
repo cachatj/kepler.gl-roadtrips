@@ -1,6 +1,6 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "installCommand": "corepack enable && yarn install",
+    "installCommand": "yarn install && cd examples/demo-app && yarn install",
     "buildCommand": "cd examples/demo-app && yarn build",
     "outputDirectory": "examples/demo-app/dist",
     "framework": null
