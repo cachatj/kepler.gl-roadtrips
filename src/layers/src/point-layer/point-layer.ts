@@ -328,7 +328,7 @@ export default class PointLayer extends Layer {
   }
 
   static findDefaultLayerProps(dataset: KeplerTable) {
-    const {fieldPairs = [], type} = dataset;
+    const {fieldPairs = [], type, label} = dataset;
 
     const props: FindDefaultLayerProps[] = [];
 
@@ -346,7 +346,11 @@ export default class PointLayer extends Layer {
         isVisible?: boolean;
         columns?: PointLayerColumnsConfig;
       } = {
-        label: pair.defaultName || 'Point'
+        label:
+          // Skip the generic 'point' fallback from findPointFieldPairs and use the dataset label instead
+          pair.defaultName && pair.defaultName !== 'point'
+            ? pair.defaultName
+            : (typeof label === 'string' && label.replace(/\.[^/.]+$/, '')) || 'Point'
       };
 
       // default layer color for begintrip and dropoff point
